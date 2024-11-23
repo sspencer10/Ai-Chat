@@ -10,6 +10,9 @@ class UserDefaultsManager: ObservableObject {
     @Published var totalSpent: Double = UserDefaults.standard.double(forKey: "totalSpent")
     @Published var cost: String = UserDefaults.standard.string(forKey: "cost") ?? "0.00"
     @Published var showCopiedToast: Bool = UserDefaults.standard.bool(forKey: "showCopiedToast")
+    @Published var webSearch: Bool = UserDefaults.standard.bool(forKey: "webSearch")
+    @Published var isUpload: Bool = UserDefaults.standard.bool(forKey: "isUpload")
+
 
     
     
@@ -45,11 +48,33 @@ class UserDefaultsManager: ObservableObject {
                                                selector: #selector(showCopiedToastChanged),
                                                name: UserDefaults.didChangeNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(webSearchChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(isUploadChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+    }
+    
+    @objc private func isUploadChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.isUpload = UserDefaults.standard.bool(forKey: "isUpload")
+        }
+        
     }
     
     @objc private func showCopiedToastChanged(notification: Notification) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             self.showCopiedToast = UserDefaults.standard.bool(forKey: "showCopiedToast")
+        }
+        
+    }
+    
+    @objc private func webSearchChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.webSearch = UserDefaults.standard.bool(forKey: "webSearch")
         }
         
     }

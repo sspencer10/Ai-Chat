@@ -296,6 +296,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Chat Ai +";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your speech data to convert speech to text.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to use speech recognition";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -334,6 +335,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Chat Ai +";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your speech data to convert speech to text.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to use speech recognition";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

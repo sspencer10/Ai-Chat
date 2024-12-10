@@ -7,10 +7,37 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6B5864452CE2D89700BE4430 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 6B5864442CE2D89700BE4430 /* Down */; };
-		6B5864482CE3361C00BE4430 /* Ink in Frameworks */ = {isa = PBXBuildFile; productRef = 6B5864472CE3361C00BE4430 /* Ink */; };
+		6B14015D2D000D9700F2D380 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 6B14015C2D000D9700F2D380 /* Down */; };
+		6B1404DE2D0069DE00F2D380 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1404DD2D0069DE00F2D380 /* SwiftMath */; };
 		6B5F23452CD33A1000E8E512 /* ChatModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6B5F23432CD33A1000E8E512 /* ChatModel.xcdatamodeld */; };
+		6BCFFED02D062BE60057A1FE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88379C2CD2F5C100EF64FB /* WidgetKit.framework */; };
+		6BCFFED12D062BE60057A1FE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88379E2CD2F5C100EF64FB /* SwiftUI.framework */; };
+		6BCFFEDC2D062BEA0057A1FE /* AIWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6BCFFECF2D062BE50057A1FE /* AIWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6BCFFEDA2D062BEA0057A1FE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6B8837572CD1A33D00EF64FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6BCFFECE2D062BE50057A1FE;
+			remoteInfo = AIWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6BCFFEE12D062BEA0057A1FE /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6BCFFEDC2D062BEA0057A1FE /* AIWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		6B0B55002CD49D3C00B1D058 /* Chat with Ai Plus.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Chat with Ai Plus.entitlements"; sourceTree = "<group>"; };
@@ -19,12 +46,39 @@
 		6B88375F2CD1A33D00EF64FB /* Chat with Ai Plus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Chat with Ai Plus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B88379C2CD2F5C100EF64FB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6B88379E2CD2F5C100EF64FB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		6BCFFECF2D062BE50057A1FE /* AIWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6BCFFEDD2D062BEA0057A1FE /* Exceptions for "AIWidget" folder in "AIWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6BCFFECE2D062BE50057A1FE /* AIWidgetExtension */;
+		};
+		6BCFFEE52D062CE40057A1FE /* Exceptions for "AIWidget" folder in "Chat with Ai Plus" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Mic.swift,
+			);
+			target = 6B88375E2CD1A33D00EF64FB /* Chat with Ai Plus */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6B8837612CD1A33D00EF64FB /* Ai Chat */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Ai Chat";
+			sourceTree = "<group>";
+		};
+		6BCFFED22D062BE60057A1FE /* AIWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6BCFFEE52D062CE40057A1FE /* Exceptions for "AIWidget" folder in "Chat with Ai Plus" target */,
+				6BCFFEDD2D062BEA0057A1FE /* Exceptions for "AIWidget" folder in "AIWidgetExtension" target */,
+			);
+			path = AIWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -34,8 +88,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6B5864452CE2D89700BE4430 /* Down in Frameworks */,
-				6B5864482CE3361C00BE4430 /* Ink in Frameworks */,
+				6B1404DE2D0069DE00F2D380 /* SwiftMath in Frameworks */,
+				6B14015D2D000D9700F2D380 /* Down in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BCFFECC2D062BE50057A1FE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BCFFED12D062BE60057A1FE /* SwiftUI.framework in Frameworks */,
+				6BCFFED02D062BE60057A1FE /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,6 +112,7 @@
 				6B0B55002CD49D3C00B1D058 /* Chat with Ai Plus.entitlements */,
 				6B5F23432CD33A1000E8E512 /* ChatModel.xcdatamodeld */,
 				6B8837612CD1A33D00EF64FB /* Ai Chat */,
+				6BCFFED22D062BE60057A1FE /* AIWidget */,
 				6B88379B2CD2F5C100EF64FB /* Frameworks */,
 				6B8837602CD1A33D00EF64FB /* Products */,
 			);
@@ -58,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				6B88375F2CD1A33D00EF64FB /* Chat with Ai Plus.app */,
+				6BCFFECF2D062BE50057A1FE /* AIWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -81,22 +146,46 @@
 				6B88375B2CD1A33D00EF64FB /* Sources */,
 				6B88375C2CD1A33D00EF64FB /* Frameworks */,
 				6B88375D2CD1A33D00EF64FB /* Resources */,
+				6BCFFEE12D062BEA0057A1FE /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6BCFFEDB2D062BEA0057A1FE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6B8837612CD1A33D00EF64FB /* Ai Chat */,
 			);
 			name = "Chat with Ai Plus";
 			packageProductDependencies = (
-				6B5864442CE2D89700BE4430 /* Down */,
-				6B5864472CE3361C00BE4430 /* Ink */,
+				6B14015C2D000D9700F2D380 /* Down */,
+				6B1404DD2D0069DE00F2D380 /* SwiftMath */,
 			);
 			productName = "Ai Chat";
 			productReference = 6B88375F2CD1A33D00EF64FB /* Chat with Ai Plus.app */;
 			productType = "com.apple.product-type.application";
+		};
+		6BCFFECE2D062BE50057A1FE /* AIWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BCFFEDE2D062BEA0057A1FE /* Build configuration list for PBXNativeTarget "AIWidgetExtension" */;
+			buildPhases = (
+				6BCFFECB2D062BE50057A1FE /* Sources */,
+				6BCFFECC2D062BE50057A1FE /* Frameworks */,
+				6BCFFECD2D062BE50057A1FE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6BCFFED22D062BE60057A1FE /* AIWidget */,
+			);
+			name = AIWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = AIWidgetExtension;
+			productReference = 6BCFFECF2D062BE50057A1FE /* AIWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -108,11 +197,14 @@
 				KnownAssetTags = (
 					New,
 				);
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					6B88375E2CD1A33D00EF64FB = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					6BCFFECE2D062BE50057A1FE = {
+						CreatedOnToolsVersion = 16.1;
 					};
 				};
 			};
@@ -126,8 +218,8 @@
 			mainGroup = 6B8837562CD1A33D00EF64FB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				6B5864432CE2D89700BE4430 /* XCRemoteSwiftPackageReference "Down" */,
-				6B5864462CE3361C00BE4430 /* XCRemoteSwiftPackageReference "Ink" */,
+				6B14015B2D000D9700F2D380 /* XCRemoteSwiftPackageReference "Down" */,
+				6B1404DC2D0069DE00F2D380 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6B8837602CD1A33D00EF64FB /* Products */;
@@ -135,12 +227,20 @@
 			projectRoot = "";
 			targets = (
 				6B88375E2CD1A33D00EF64FB /* Chat with Ai Plus */,
+				6BCFFECE2D062BE50057A1FE /* AIWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		6B88375D2CD1A33D00EF64FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BCFFECD2D062BE50057A1FE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -158,7 +258,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6BCFFECB2D062BE50057A1FE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6BCFFEDB2D062BEA0057A1FE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6BCFFECE2D062BE50057A1FE /* AIWidgetExtension */;
+			targetProxy = 6BCFFEDA2D062BEA0057A1FE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		6B88376B2CD1A33F00EF64FB /* Debug */ = {
@@ -295,6 +410,8 @@
 				INFOPLIST_FILE = "Chat-with-Ai-Plus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Chat Ai +";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "We need permission to play and pause music";
+				INFOPLIST_KEY_NSContactsUsageDescription = "To suggest contact names when sending text";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your speech data to convert speech to text.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to use speech recognition";
@@ -334,6 +451,8 @@
 				INFOPLIST_FILE = "Chat-with-Ai-Plus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Chat Ai +";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "We need permission to play and pause music";
+				INFOPLIST_KEY_NSContactsUsageDescription = "To suggest contact names when sending text";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your speech data to convert speech to text.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To save images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to use speech recognition";
@@ -352,6 +471,62 @@
 				REGISTER_APP_GROUPS = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6BCFFEDF2D062BEA0057A1FE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZUL32453KR;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AIWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AIWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.rightdevllc.Ai-Chat.AIWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6BCFFEE02D062BEA0057A1FE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZUL32453KR;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AIWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AIWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.rightdevllc.Ai-Chat.AIWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -379,37 +554,46 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		6BCFFEDE2D062BEA0057A1FE /* Build configuration list for PBXNativeTarget "AIWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6BCFFEDF2D062BEA0057A1FE /* Debug */,
+				6BCFFEE02D062BEA0057A1FE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		6B5864432CE2D89700BE4430 /* XCRemoteSwiftPackageReference "Down" */ = {
+		6B14015B2D000D9700F2D380 /* XCRemoteSwiftPackageReference "Down" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/iwasrobbed/Down";
+			repositoryURL = "https://github.com/johnxnguyen/Down";
 			requirement = {
 				branch = master;
 				kind = branch;
 			};
 		};
-		6B5864462CE3361C00BE4430 /* XCRemoteSwiftPackageReference "Ink" */ = {
+		6B1404DC2D0069DE00F2D380 /* XCRemoteSwiftPackageReference "SwiftMath" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/JohnSundell/Ink";
+			repositoryURL = "https://github.com/mgriebling/SwiftMath.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.6.0;
+				minimumVersion = 1.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		6B5864442CE2D89700BE4430 /* Down */ = {
+		6B14015C2D000D9700F2D380 /* Down */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 6B5864432CE2D89700BE4430 /* XCRemoteSwiftPackageReference "Down" */;
+			package = 6B14015B2D000D9700F2D380 /* XCRemoteSwiftPackageReference "Down" */;
 			productName = Down;
 		};
-		6B5864472CE3361C00BE4430 /* Ink */ = {
+		6B1404DD2D0069DE00F2D380 /* SwiftMath */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 6B5864462CE3361C00BE4430 /* XCRemoteSwiftPackageReference "Ink" */;
-			productName = Ink;
+			package = 6B1404DC2D0069DE00F2D380 /* XCRemoteSwiftPackageReference "SwiftMath" */;
+			productName = SwiftMath;
 		};
 /* End XCSwiftPackageProductDependency section */
 

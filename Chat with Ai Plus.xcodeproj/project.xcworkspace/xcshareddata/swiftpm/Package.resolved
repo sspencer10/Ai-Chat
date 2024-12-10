@@ -1,22 +1,22 @@
 {
-  "originHash" : "a4f3159f571c523568ae5afc409f11af890fe6c78f6fec860ede2506990bf5ea",
+  "originHash" : "c709e2a3b791c04954bfdb23baf1c10f2f13b2845a2caa8da52fe758ac9fc69f",
   "pins" : [
     {
       "identity" : "down",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/iwasrobbed/Down",
+      "location" : "https://github.com/johnxnguyen/Down",
       "state" : {
         "branch" : "master",
         "revision" : "e754ab1c80920dd51a8e08290c912ac1c2ac8b58"
       }
     },
     {
-      "identity" : "ink",
+      "identity" : "swiftmath",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/JohnSundell/Ink",
+      "location" : "https://github.com/mgriebling/SwiftMath.git",
       "state" : {
-        "revision" : "bcc9f219900a62c4210e6db726035d7f03ae757b",
-        "version" : "0.6.0"
+        "revision" : "7799485428a3988c4104c4e366541f7725ced4e3",
+        "version" : "1.6.0"
       }
     }
   ],

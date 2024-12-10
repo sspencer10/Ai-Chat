@@ -15,10 +15,12 @@ struct SettingsView: View {
     @Binding var selectedVoice: String
     @Binding var isSpeechEnabled: Bool
     @AppStorage("appearanceMode") var appearanceMode: AppearanceMode = .system
+    @AppStorage("playSoundSetting") var playSoundSetting: Bool = true
 
     @Environment(\.presentationMode) var presentationMode  // Used to dismiss the view
 
     let models = ["gpt-3.5-turbo-0125", "gpt-4o-mini"]  // Available models
+    
     let predefinedVoices = [
         "com.apple.ttsbundle.Samantha-compact": "Samantha",
         "com.apple.ttsbundle.siri_female_en-US_compact": "Nicky",
@@ -31,6 +33,7 @@ struct SettingsView: View {
             voice.language.hasPrefix("en") && voice.quality != .default
         }
     }
+     
 
     let themes = ["Light", "Dark", "System"]  // Appearance options
     let appearanceModes = AppearanceMode.allCases // Array of available modes
@@ -80,6 +83,13 @@ struct SettingsView: View {
                 }
                 
                 // Speech Enable/Disable Section
+                Section(header: Text("App Sounds")) {
+                    Toggle(isOn: $playSoundSetting) {
+                        Text("Enable App Sounds")
+                    }
+                }
+                
+                // Speech Enable/Disable Section
                 Section(header: Text("Text-to-Speech")) {
                     Toggle(isOn: $isSpeechEnabled) {
                         Text("Enable Speech")
@@ -87,6 +97,7 @@ struct SettingsView: View {
                 }
 
                 // Conditionally show Voice selection if speech is enabled
+                
                 if isSpeechEnabled {
                     Section(header: Text("Text-to-Speech Voice")) {
                         // Display predefined voices
@@ -129,6 +140,7 @@ struct SettingsView: View {
                             .foregroundColor(.gray)
                     }
                 }
+                 
             }
 
 #if !os(macOS)

@@ -4,6 +4,7 @@ import SwiftUI
 class UserDefaultsManager: ObservableObject {
     
     @Published var selectedModel: String = UserDefaults.standard.string(forKey: "selectedModel") ?? "gpt-4o-mini"
+    @Published var phone: String = UserDefaults.standard.string(forKey: "phone") ?? ""
     @Published var selectedVoice: String = UserDefaults.standard.string(forKey: "selectedVoice") ?? "com.apple.ttsbundle.siri_male_en-US_compact"
     @Published var isSpeechEnabled: Bool = UserDefaults.standard.bool(forKey: "isSpeechEnabled")
     @Published var selectedTheme: String = UserDefaults.standard.string(forKey: "selectedTheme") ?? "System"
@@ -12,7 +13,10 @@ class UserDefaultsManager: ObservableObject {
     @Published var showCopiedToast: Bool = UserDefaults.standard.bool(forKey: "showCopiedToast")
     @Published var webSearch: Bool = UserDefaults.standard.bool(forKey: "webSearch")
     @Published var isUpload: Bool = UserDefaults.standard.bool(forKey: "isUpload")
-
+    @Published var waitingForMsg: Bool = UserDefaults.standard.bool(forKey: "waitingForMsg")
+    @Published var showContacts: Bool = UserDefaults.standard.bool(forKey: "showContacts")
+    @Published var phoneNumberSelected: Bool = UserDefaults.standard.bool(forKey: "phoneNumberSelected")
+    @Published var phoneNumber: String = UserDefaults.standard.string(forKey: "phoneNumber") ?? ""
 
     
     
@@ -56,6 +60,26 @@ class UserDefaultsManager: ObservableObject {
                                                selector: #selector(isUploadChanged),
                                                name: UserDefaults.didChangeNotification,
                                                object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(phoneChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(phoneNumberChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(phoneNumberSelectedChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(waitingForMsgChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(showContactsChanged),
+                                               name: UserDefaults.didChangeNotification,
+                                               object: nil)
     }
     
     @objc private func isUploadChanged(notification: Notification) {
@@ -65,9 +89,44 @@ class UserDefaultsManager: ObservableObject {
         
     }
     
+    @objc private func phoneNumberChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.phoneNumber = UserDefaults.standard.string(forKey: "phoneNumber") ?? ""
+        }
+    }
+    
+    @objc private func phoneNumberSelectedChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.phoneNumberSelected = UserDefaults.standard.bool(forKey: "phoneNumberSelected")
+        }
+    }
+    
+    @objc private func phoneChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.phone = UserDefaults.standard.string(forKey: "phone") ?? ""
+        }
+        
+    }
+    
     @objc private func showCopiedToastChanged(notification: Notification) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             self.showCopiedToast = UserDefaults.standard.bool(forKey: "showCopiedToast")
+        }
+        
+    }
+    
+    @objc private func waitingForMsgChanged(notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.waitingForMsg = UserDefaults.standard.bool(forKey: "waitingForMsg")
+            //print("waitingForMsg: \(self.waitingForMsg)")
+        }
+        
+    }
+    
+    @objc private func showContactsChanged(notification: Notification) {
+        //print("showContacts changed to \(UserDefaults.standard.bool(forKey: "showContacts"))")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.showContacts = UserDefaults.standard.bool(forKey: "showContacts")
         }
         
     }

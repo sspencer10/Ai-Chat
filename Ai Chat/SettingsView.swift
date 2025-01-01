@@ -58,7 +58,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-
+/*
                 // GPT Model Section
                 Section(header: Text("GPT Model")) {
                     List(models, id: \.self) { model in
@@ -81,6 +81,7 @@ struct SettingsView: View {
                     Text("Price for last request: $\(UserDefaults.standard.string(forKey: "cost") ?? "")")
                     Text("Total Spent: $\(String(format: "%.2f", UserDefaults.standard.double(forKey: "totalSpent")))")
                 }
+ */
                 
                 // Speech Enable/Disable Section
                 Section(header: Text("App Sounds")) {
@@ -139,6 +140,14 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundColor(.gray)
                     }
+                }
+                Section(header: Text("Shortcut Helpers")) {
+                    Link("Set Alarms", destination: URL(string: "https://www.icloud.com/shortcuts/149b4dc29d994a6887763827920df07c")!)
+                        .foregroundColor(.blue)
+                        .font(.headline)
+                    Link("Send Texts", destination: URL(string: "https://www.icloud.com/shortcuts/9bf7a162d643403bbaf7685f9b02cf46")!)
+                        .foregroundColor(.blue)
+                        .font(.headline)
                 }
                  
             }

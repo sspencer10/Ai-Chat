@@ -4,18 +4,26 @@ import AVFoundation
 import Photos
 import MediaPlayer
 
-
-//class ContentClass: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
-class ContentClass: NSObject, ObservableObject {
-    //let speechSynthesizer = AVSpeechSynthesizer()
-    
-    @Published var command: String = ""
+class ContentClass: NSObject, ObservableObject, URLSessionDataDelegate {
     @Published var uploadString: String = ""
-    @Published var messages: [Message] = []
     @Published var isTyping: Bool = false
     @Published var selectedFile: URL?
+    @Published var showAlert: Bool = false
     @Published var isDeviceListening: Bool = false
     @Published var msgProxy: ScrollViewProxy? = nil
+    @Published var lineCount: Int = 1
+    @Published var messages: [Message] = []
+    
+    // Track partial streaming text
+    private var partialResponseBuffer: String = ""
+    
+    // We’ll keep a reference to the streaming task and session so we can cancel if needed
+    private var streamingTask: URLSessionDataTask?
+    private var streamingSession: URLSession?
+    
+    // Example property to store your server’s Bearer token
+    let apiKey = "21d846e46126a371ca742ac9705de31130bf196c"
+    
     @AppStorage("selectedModel") var selectedModel = "gpt-4o-mini"
     @AppStorage("isSpeechEnabled") var isSpeechEnabled = true
     var userDefaultsManager = UserDefaultsManager()
@@ -23,13 +31,28 @@ class ContentClass: NSObject, ObservableObject {
     var musicPlayer = MPMusicPlayerController.systemMusicPlayer
     var musicPlayerIsPlaying = false
     var speechSynthesizer: SpeechSynthesizer?
-    var keyboardResponder: KeyboardResponder?
+    
+    // --- CHANGED: We'll track whether or not a response is streaming.
+    private var isResponseStreaming: Bool = false
+    // --- CHANGED: We'll buffer data for non-streaming usage.
+    private var nonStreamingDataBuffer = Data()
+    
+    // ----------------------------------------------------------------
+    // ADDED: Throttle tracking
+    private var lastUIUpdateTime = Date(timeIntervalSince1970: 0) // Holds the last time we updated the UI
+    private let uiUpdateThrottleInterval: TimeInterval = 0.3      // Only update the UI every 0.2s
+    
+    // ADDED: We'll store partial messages to save to Core Data after streaming completes
+    private var batchedCoreDataMessages: [(text: String, isUser: Bool)] = []    // ----------------------------------------------------------------
     
     
     override init() {
         super.init()
-        //self.speechSynthesizer = SpeechSynthesizer(contentClass: self)
-        configureAudioSession()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        print("ContentClass deinitialized")
     }
     
     func proxySetter(_ proxy: ScrollViewProxy) {
@@ -43,7 +66,7 @@ class ContentClass: NSObject, ObservableObject {
     func configureAudioSession() {
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowAirPlay])
             try audioSession.setActive(false)
             print("Audio session successfully configured for playback.")
         } catch {
@@ -51,71 +74,80 @@ class ContentClass: NSObject, ObservableObject {
         }
     }
     
+ 
+    
     func isListening(x: Bool) {
-        if x {
-            isDeviceListening = true
-        } else {
-            isDeviceListening = false
-        }
+        isDeviceListening = x
     }
     
-    // Function to format the session title with date and time
+    func setShowAlert(_ x: Bool) {
+        showAlert = x
+    }
+    
     private func generateSessionTitle() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM d, yyyy 'at' h:mm a"
         return "Session from \(dateFormatter.string(from: Date()))"
     }
     
-    // Start a new chat session
     func startNewSession() {
         guard currentSession != nil else { return }
-        // Clear the current session
         currentSession = nil
         messages.removeAll()
         isTyping = false
     }
     
-    // Function to start a new session only if one doesn’t exist
     private func startNewSessionIfNeeded(title: String) {
         if currentSession == nil {
             currentSession = CoreDataManager.shared.createSession(title: title)
-            //messages.removeAll()
         }
     }
     
-    func sendCommand(isUpload: Bool) {
-        guard !command.isEmpty else { return }
+    
+    // --------------------------------------------------------
+    // CHANGED: sendCommand with integrated SSE logic + throttling + batching
+    // --------------------------------------------------------
+    func sendCommand(isUpload: Bool, command: String) {
         
+        guard !command.isEmpty else {
+            print("Empty command")
+            return
+        }
         
-        if command.contains("Navigate to ") {
+        // 1) Check custom logic: Navigate, phone text, alarm, etc...
+        if command.contains("Navigate to ") || command.contains("directions to ") {
             print("Navigation")
             var address = command.replacingOccurrences(of: "Navigate to ", with: "")
             address = address.replacingOccurrences(of: " ", with: "+")
-
+            
             print("address \(address)")
             UserDefaults.standard.set(address, forKey: "address")
             let userMessage = Message(content: command, isUser: true)
             messages.append(userMessage)
             let assistantMessage = Message(
                 content: """
-            <NavigationButton address="\(address)"/>
-            """,
+                <NavigationButton address="\(address)"/>
+                """,
                 isUser: false
             )
             messages.append(assistantMessage)
-            command = ""
+            startNewSessionIfNeeded(title: "Get Directions")
+
             return
+            
         } else if command == "Phone number is" {
             let userMessage = Message(content: command, isUser: true)
             messages.append(userMessage)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
                 print("phone number received: \(self.userDefaultsManager.phone)")
                 let assistantMessage = Message(content: "What is the message?", isUser: false)
                 self.messages.append(assistantMessage)
                 UserDefaults.standard.set(true, forKey: "waitingForMsg")
-                self.command = ""
-                return
+  
             }
+            return
+            
         } else if command.contains("Send a text") {
             print("Send a text")
             if let match = command.range(of: "\\d{10}", options: .regularExpression) {
@@ -126,69 +158,69 @@ class ContentClass: NSObject, ObservableObject {
                 let assistantMessage = Message(content: "What is the message?", isUser: false)
                 messages.append(assistantMessage)
                 UserDefaults.standard.set(number, forKey: "phone")
-                command = ""
+                startNewSessionIfNeeded(title: "Send a Text")
                 return
             } else {
                 let userMessage = Message(content: command, isUser: true)
                 messages.append(userMessage)
                 let assistantMessage = Message(content: "<ContactsButton", isUser: false)
                 messages.append(assistantMessage)
-                command = ""
+                startNewSessionIfNeeded(title: "Send a Text")
                 return
             }
+            
         } else if userDefaultsManager.phone != "" {
             let userMessage = Message(content: command, isUser: true)
             messages.append(userMessage)
             let msg = command
             UserDefaults.standard.set(msg, forKey: "msg")
             let number = userDefaultsManager.phone
-            //let assistantMessage = Message(content: "[Send a text](shortcuts://run-shortcut?name=SendText&input=text&text={\"phone\":\"\(number)\",\"msg\":\"\(msg)\"})", isUser: false)
             let assistantMessage = Message(
                 content: """
-            <SendTextButton phone="\(number)" msg="\(msg)"/>
-            """,
+                <SendTextButton phone="\(number)" msg="\(msg)"/>
+                """,
                 isUser: false
             )
             messages.append(assistantMessage)
-            command = ""
+
             return
+            
         } else if userDefaultsManager.waitingForMsg {
             UserDefaults.standard.set(false, forKey: "waitingForMsg")
-            
-                let userMessage = Message(content: command, isUser: true)
-                messages.append(userMessage)
-                let msg = command
-                UserDefaults.standard.set(msg, forKey: "msg")
-                let number = userDefaultsManager.phoneNumber
-                let assistantMessage = Message(
-                    content: """
+            let userMessage = Message(content: command, isUser: true)
+            messages.append(userMessage)
+            let msg = command
+            UserDefaults.standard.set(msg, forKey: "msg")
+            let number = userDefaultsManager.phoneNumber
+            let assistantMessage = Message(
+                content: """
                 <SendTextButton phone="\(number)" msg="\(msg)"/>
                 """,
-                    isUser: false
-                )
-                messages.append(assistantMessage)
-                
-                
-                command = ""
+                isUser: false
+            )
+            messages.append(assistantMessage)
+            
+
             return
+            
         } else if ((command.contains("Set") || command.contains("set")) && command.contains("alarm")) {
             print("Set Alarm")
             let userMessage = Message(content: command, isUser: true)
             messages.append(userMessage)
-            
-            // Add the button instead of the link
             let assistantMessage = Message(
                 content: """
-            <SetAlarmButton time="\(command)" />
-            """,
+                <SetAlarmButton time="\(command)" />
+                """,
                 isUser: false
             )
             messages.append(assistantMessage)
-            command = ""
-            return // Exit early since "Set Alarm" is handled
-        } else {
+            startNewSessionIfNeeded(title: "Set an Alarm")
+
+            return
             
-            var fullCommand = command // Full command sent to the server
+        } else {
+            // 2) If not one of those special commands, proceed to SSE logic
+            var fullCommand = command
             
             if isUpload {
                 fullCommand = "Upload: /home/steve/ai/uploaded.json : \(command)"
@@ -207,16 +239,15 @@ class ContentClass: NSObject, ObservableObject {
             
             print("Full Command: \(fullCommand)")
             
-            // Add the user's message (without the "Upload" prefix) to the chat history
-            let userMessage = Message(content: command, isUser: true) // Only the raw command is shown
+            // Add the user's message
+            let userMessage = Message(content: command, isUser: true)
             messages.append(userMessage)
             
-            // Prepare the chat history to send to the server (limit to last 20 entries)
+            // Build recent history
             var recentHistory = Array(messages.suffix(20)).map {
                 ["role": $0.isUser ? "user" : "assistant", "content": $0.content]
             }
             
-            // Add jsonString to recentHistory without showing it in messages
             if !uploadString.isEmpty {
                 recentHistory.append(["role": "user", "content": uploadString])
                 let userMessage2 = Message(content: uploadString, isUser: true)
@@ -224,146 +255,116 @@ class ContentClass: NSObject, ObservableObject {
                 uploadString = ""
             }
             
-            // Debug output to verify recentHistory
-            print("recentHistory with jsonString: \(recentHistory)")
-            
-            // Prepare and send API request
+            // Prepare request
             let urlString = "https://ai.sspencer10.com/ask"
             guard let url = URL(string: urlString) else { return }
-            
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
-            
-            // Add your API key here
-            let apiKey = "21d846e46126a371ca742ac9705de31130bf196c"
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            // Accept SSE
+            request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
             
-            // Prepare the parameters to include the full command, model, and chat history
             let parameters: [String: Any] = [
-                "command": fullCommand, // Use the full command here
+                "command": fullCommand,
                 "model": selectedModel,
                 "history": recentHistory,
-                "webSearch": UserDefaultsManager().webSearch
+                "webSearch": userDefaultsManager.webSearch
             ]
-            
-            command = ""  // Clear the command text after sending
-            isTyping = true
-            
-            // Convert parameters to JSON data
             request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: [])
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data, error == nil else {
-                    print("Error 001: \(error?.localizedDescription ?? "Unknown error")")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.command = ""  // Clear the command in case of error
-                        UserDefaults.standard.set(false, forKey: "webSearch")
-                    }
-                    return
+            self.isTyping = true
+            // Clear any old buffers
+            self.isResponseStreaming = false
+            self.nonStreamingDataBuffer.removeAll()
+            self.partialResponseBuffer = ""
+            
+            // ADDED: Clear out our batch list for Core Data
+            self.batchedCoreDataMessages.removeAll() // ADDED
+            
+            // Create a custom session
+            let config = URLSessionConfiguration.default
+            self.streamingSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+            
+            // Start the SSE data task
+            self.streamingTask = streamingSession?.dataTask(with: request)
+            self.streamingTask?.resume()
+            
+        }
+        //command = ""
+        //hideKeyboard()
+    }
+    // --------------------------------------------------------
+
+    
+    private func finishStreamWithText(_ finalText: String) {
+        
+        var trimmedResponse = finalText
+        var extractedTitle = ""
+        
+        if let titleRange = finalText.range(of: "**Title:**") {
+            trimmedResponse = String(finalText[..<titleRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            extractedTitle = String(finalText[titleRange.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            startNewSessionIfNeeded(title: extractedTitle)
+            
+            // CHANGED: Instead of adding to Core Data for every partial, we do it once here
+            if let lastUserMessage = self.messages.last(where: { $0.isUser }) {
+                // We'll just queue it up. (Alternatively, you can call addMessage here.)
+                batchedCoreDataMessages.append((lastUserMessage.content, true)) // ADDED
+            }
+            print("Title: \(extractedTitle)")
+            
+        } else {
+            startNewSessionIfNeeded(title: self.generateSessionTitle())
+            if let lastUserMessage = self.messages.last(where: { $0.isUser }) {
+                batchedCoreDataMessages.append((lastUserMessage.content, true)) // ADDED
+            }
+        }
+        
+        // 3) Update or append the assistant message in the UI
+        if let lastIndex = self.messages.lastIndex(where: { !$0.isUser }) {
+            var lastAssist = self.messages[lastIndex]
+            lastAssist.content = trimmedResponse
+            self.messages[lastIndex] = lastAssist
+            // ADDED: also queue the assistant message
+            batchedCoreDataMessages.append((trimmedResponse, false))
+        } else {
+            let assistantMessage = Message(content: trimmedResponse, isUser: false)
+            self.messages.append(assistantMessage)
+            // ADDED
+            batchedCoreDataMessages.append((trimmedResponse, false))
+        }
+        
+        // Once the entire streaming is done, we do a single batch save
+        if let session = self.currentSession {
+            // Suppose you have an array called `batchedCoreDataMessages`,
+            // each element is `(String, Bool)` for (text, isUser).
+            CoreDataManager.shared.batchAddMessages(batchedCoreDataMessages, to: session)
+        }
+        isTyping = false
+        // 5) Speak if needed
+        if self.isSpeechEnabled {
+            if trimmedResponse.contains("oaidalleapiprodscus") {
+                print("won't speak this response")
+            } else if trimmedResponse.contains("SCORE:") {
+                let lines = trimmedResponse.components(separatedBy: "\n")
+                if lines.count > 1 {
+                    let secondLine = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    let cleanedString = secondLine
+                        .replacingOccurrences(of: "**", with: "")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    print(cleanedString)
+                    self.speechSynthesizer?.speakResponse(response: cleanedString)
                 }
-                
-                // Variables to hold the trimmed response and extracted title
-                var trimmedResponse = ""
-                var extractedTitle = ""
-                
-                // Parse the JSON response from the API
-                do {
-                    if let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                        
-                        // Check for an error in the response
-                        if let errorMessage = jsonResponse["error"] as? String {
-                            DispatchQueue.main.async {
-                                UserDefaults.standard.set(false, forKey: "webSearch")
-                                let assistantMessage = Message(content: "Error 002: \(errorMessage)", isUser: false)
-                                self.messages.append(assistantMessage)
-                                self.isTyping = false
-                                self.command = ""
-                            }
-                            return
-                        }
-                        
-                        // Proceed with handling a successful response
-                        if let responseText = jsonResponse["response"] as? String {
-                            let cost = jsonResponse["total_cost"] as? String ?? "N/A"
-                            let modelUsed = jsonResponse["model_used"] as? String ?? "Unknown model"
-                            print("Raw Response: \(responseText)")
-                            // Check if the response contains "**Title:**"
-                            if let titleRange = responseText.range(of: "**Title:**") {
-                                // Extract the main content before the title
-                                trimmedResponse = String(responseText[..<titleRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                                
-                                // Extract the content after "**Title:**"
-                                extractedTitle = String(responseText[titleRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                                // Start a new session if one does not exist
-                                self.startNewSessionIfNeeded(title: extractedTitle)
-                                CoreDataManager.shared.addMessage(userMessage.content, isUser: userMessage.isUser, to: self.currentSession!)
-                                print("Title: \(extractedTitle)")
-                            } else {
-                                // If no title is found, use the full response text
-                                trimmedResponse = responseText
-                                self.startNewSessionIfNeeded(title: self.generateSessionTitle())
-                                CoreDataManager.shared.addMessage(userMessage.content, isUser: userMessage.isUser, to: self.currentSession!)
-                            }
-                            
-                            DispatchQueue.main.async {
-                                // Append the trimmed response to the messages
-                                let assistantMessage = Message(content: trimmedResponse, isUser: false)
-                                self.messages.append(assistantMessage)
-                                self.isTyping = false
-                                
-                                // Save to Core Data
-                                CoreDataManager.shared.addMessage(assistantMessage.content, isUser: assistantMessage.isUser, to: self.currentSession!)
-                                
-                                print("Model Used: \(modelUsed)")
-                                print("Cost: \(cost)")
-                                UserDefaults.standard.set(cost, forKey: "cost")
-                                
-                                // Store the extracted title if it exists
-                                if !extractedTitle.isEmpty {
-                                    print("Extracted Title: \(extractedTitle)")
-                                    UserDefaults.standard.set(extractedTitle, forKey: "lastTitle")
-                                }
-                                
-                                // Update the total cost
-                                let subtotal = UserDefaults.standard.string(forKey: "totalSpent") ?? "0.00"
-                                if let doubleSubTotal = Double(subtotal), let doubleCost = Double(cost) {
-                                    let total = doubleSubTotal + doubleCost
-                                    UserDefaults.standard.set(total, forKey: "totalSpent")
-                                }
-                                
-                                // Speak the response if speech is enabled
-                                if self.isSpeechEnabled {
-                                    if trimmedResponse.contains("oaidalleapiprodscus") {
-                                        print("won't speak this response")
-                                    } else if trimmedResponse.contains("SCORE:") {
-                                        let lines = trimmedResponse.components(separatedBy: "\n")
-                                        // Extract the second line (if it exists)
-                                        if lines.count > 1 {
-                                            let secondLine = lines[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                                            let cleanedString = secondLine.replacingOccurrences(of: "**", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                                            print(cleanedString)
-                                            self.speechSynthesizer?.speakResponse(response: cleanedString)
-                                        }
-                                    } else {
-                                        self.speechSynthesizer?.speakResponse(response: trimmedResponse)
-                                    }
-                                }
-                                UserDefaults.standard.set(false, forKey: "webSearch")
-                            }
-                        }
-                    }
-                } catch {
-                    UserDefaults.standard.set(false, forKey: "webSearch")
-                    print("Error parsing JSON: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        self.command = ""
-                        let assistantMessage = Message(content: "Sorry, there was an error processing your request.", isUser: false)
-                        self.messages.append(assistantMessage)
-                        self.isTyping = false
-                    }
-                }            }
-            task.resume()
+            } else {
+                self.speechSynthesizer?.speakResponse(response: trimmedResponse)
+            }
+            return
+        } else {
+            return
         }
     }
     
@@ -372,7 +373,6 @@ class ContentClass: NSObject, ObservableObject {
             if authorized {
                 UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                 print("Image saved to photos")
-                // Optionally show user feedback here
             } else {
                 print("Permission to save photos was denied.")
             }
@@ -397,13 +397,12 @@ class ContentClass: NSObject, ObservableObject {
     
     func copyToClipboard(_ text: String) {
         #if targetEnvironment(macCatalyst) || os(iOS)
-            UIPasteboard.general.string = text
+        UIPasteboard.general.string = text
         #elseif os(macOS)
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
         #endif
     }
-    
     
     func triggerToast() {
         withAnimation {
@@ -423,39 +422,7 @@ class ContentClass: NSObject, ObservableObject {
     
     func hideKeyboard() {
         print("hide Keyboard")
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-    
-    func scrollToBottom(proxy: ScrollViewProxy?) {
-        if let lastMessage = messages.last {
-            if lastMessage.isUser {
-                proxy?.scrollTo(lastMessage.id, anchor: .bottom)
-            } else {
-                proxy?.scrollTo(lastMessage.id, anchor: .top)
-            }
-        }
-    }
-    
-    func scrollToBottomBottom(proxy: ScrollViewProxy?) {
-        if let lastMessage = messages.last {
-            proxy?.scrollTo(lastMessage.id, anchor: .bottom)
-        }
-    }
-    
-    func scrollToKeyboardBottom(proxy: ScrollViewProxy?) {
-        proxy?.scrollTo("aboveBottomAnchor", anchor: .bottom)
-
-    }
-    
-    func scrollToKeyboardBottomHide(proxy: ScrollViewProxy?) {
-        proxy?.scrollTo("bottom", anchor: .bottom)
-
-    }
-    
-    func scrollTop(proxy: ScrollViewProxy?) {
-        if let firstMessage = messages.first {
-            proxy?.scrollTo(firstMessage.id, anchor: .top)
-        }
+        //UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
     func loadSession(_ session: ChatSession) {
@@ -463,7 +430,134 @@ class ContentClass: NSObject, ObservableObject {
             Message(content: message.content ?? "", isUser: message.isUser)
         }
         currentSession = session
-        scrollToBottom(proxy: msgProxy)
     }
 }
 
+
+// MARK: - URLSessionDataDelegate
+extension ContentClass {
+    
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        
+        defer { completionHandler(.allow) }
+        
+        guard let httpResponse = response as? HTTPURLResponse else { return }
+        
+        let contentType = httpResponse.allHeaderFields["Content-Type"] as? String ?? ""
+        print("Received contentType: \(contentType)")
+        
+        if contentType.contains("text/event-stream") {
+            self.isResponseStreaming = true
+            // We add a placeholder so that user sees something
+            let assistantPlaceholder = Message(content: "", isUser: false)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.messages.append(assistantPlaceholder)
+            }
+        } else {
+            self.isResponseStreaming = false
+            let assistantPlaceholder = Message(content: "Generating response...", isUser: false)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.messages.append(assistantPlaceholder)
+            }
+        }
+    }
+    
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive data: Data) {
+        
+        if isResponseStreaming {
+            guard let chunkString = String(data: data, encoding: .utf8),
+                  !chunkString.isEmpty else { return }
+            
+            let lines = chunkString.components(separatedBy: "\n")
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.hasPrefix("data:") else { continue }
+                
+                if trimmed == "data: [DONE]" {
+                    let finalText = self.partialResponseBuffer
+                    self.partialResponseBuffer = ""
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.finishStreamWithText(finalText)
+                    }
+                    return
+                }
+                
+                let jsonString = trimmed.replacingOccurrences(of: "data: ", with: "")
+                guard let jsonData = jsonString.data(using: .utf8),
+                      let jsonObject = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+                      let partialContent = jsonObject["content"] as? String else {
+                    continue
+                }
+                
+                self.partialResponseBuffer += partialContent
+                
+                // ADDED: Throttle partial UI updates
+                let now = Date()
+                if now.timeIntervalSince(lastUIUpdateTime) > uiUpdateThrottleInterval {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        if let lastMessageIndex = self.messages.lastIndex(where: { !$0.isUser }) {
+                            var updatedMsg = self.messages[lastMessageIndex]
+                            updatedMsg.content = self.partialResponseBuffer
+                            self.messages[lastMessageIndex] = updatedMsg
+                        } else {
+                            let partialMsg = Message(content: self.partialResponseBuffer, isUser: false)
+                            self.messages.append(partialMsg)
+                        }
+                    }
+                    lastUIUpdateTime = now
+                }
+            }
+            
+        } else {
+            // Non-streaming
+            self.nonStreamingDataBuffer.append(data)
+        }
+    }
+    
+    func urlSession(_ session: URLSession,
+                    task: URLSessionTask,
+                    didCompleteWithError error: Error?) {
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isTyping = false
+        }
+        
+        if let error = error {
+            print("Stream error: \(error)")
+            return
+        }
+        
+        // If it's non-streaming, parse JSON
+        if !isResponseStreaming {
+            let finalData = self.nonStreamingDataBuffer
+            self.nonStreamingDataBuffer.removeAll()
+            
+            do {
+                if let jsonObject = try JSONSerialization.jsonObject(with: finalData, options: []) as? [String: Any],
+                   let finalText = jsonObject["response"] as? String {
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.finishStreamWithText(finalText)
+                    }
+                } else {
+                    print("Could not parse JSON or missing 'response' key.")
+                }
+            } catch {
+                print("JSON parse error: \(error)")
+            }
+        } else {
+            print("Streaming completed successfully.")
+        }
+    }
+}

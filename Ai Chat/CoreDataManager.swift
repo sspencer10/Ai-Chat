@@ -50,7 +50,7 @@ class CoreDataManager {
     }
     
     
-    // Function to add a message to a session
+    // Function to add a single message to a session
     func addMessage(_ content: String, isUser: Bool, to session: ChatSession) {
         let message = ChatMessage(context: context)
         message.content = content
@@ -58,6 +58,36 @@ class CoreDataManager {
         message.timestamp = Date()
         message.session = session
         saveContext()
+    }
+
+    // MARK: - NEW: Batch Add Messages
+    /// Adds multiple messages at once to reduce multiple save calls.
+    /// - Parameters:
+    ///   - messages: Array of `(text, isUser)` tuples to store.
+    ///   - session: The `ChatSession` to which these messages belong.
+    func batchAddMessages(_ messages: [(text: String, isUser: Bool)], to session: ChatSession) {
+        // Use the main context or a background context, depending on your preference.
+        // If you prefer background, you can do:
+        // let backgroundContext = persistentContainer.newBackgroundContext()
+        // and then `backgroundContext.perform { ... }`.
+        
+        let context = persistentContainer.viewContext
+        context.perform {
+            for (text, isUser) in messages {
+                let chatMessage = ChatMessage(context: context)
+                chatMessage.content = text
+                chatMessage.isUser = isUser
+                chatMessage.timestamp = Date()
+                chatMessage.session = session
+            }
+            
+            do {
+                try context.save()
+                print("Batch of \(messages.count) messages saved successfully.")
+            } catch {
+                print("Error saving batch messages: \(error)")
+            }
+        }
     }
 
     // Fetch all saved chat sessions

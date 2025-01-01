@@ -283,6 +283,7 @@ struct MessageView: View {
            
         }
         .id(message.id)
+        
     }
     
     func getLatexUrl() -> String {

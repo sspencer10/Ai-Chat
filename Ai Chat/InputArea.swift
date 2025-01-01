@@ -12,121 +12,71 @@ struct InputArea: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @ObservedObject var contentClass: ContentClass
-    @ObservedObject var speechRecognizer: SpeechRecognizer // Changed to @ObservedObject
-    @ObservedObject var speechSynthesizer: SpeechSynthesizer // Changed to @ObservedObject
-    @ObservedObject var keyboardResponder: KeyboardResponder
+    @ObservedObject var speechRecognizer: SpeechRecognizer
+    @ObservedObject var speechSynthesizer: SpeechSynthesizer
     @StateObject var userDefaultsManager = UserDefaultsManager()
     @State private var isShowingSettings = false
     @State private var isShowingSessions = false
     @State private var showCopiedToast = false
     @State private var isTyping = false
     @State private var isAtBottom = true
-    @State var command: String = ""
     @State var webSearch: Bool = false
     @State var uploadSwitch: Bool = false
-
+    @State private var navigateToDetail = false // State to control navigation
     @State private var loadedImage: UIImage? = nil
     @State private var showShareOptions: Bool = false
     @State private var shareItems: [Any]? = nil
-    @State private var pdfGenerator: PDFGenerator? = nil // Retain PDFGenerator instance
-    // State variables for alerts
+    @State private var pdfGenerator: PDFGenerator? = nil
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var selectedFile: URL?
     @State var showFilePicker: Bool = false
     @State var fileName: String = ""
     @State var showContacts: Bool = false
-    @State private var text: String = ""
-    @State var scrollOffset: CGFloat = 0.0 // Track the current scroll position
-    @State private var height: CGFloat = 50
-    @State private var lastScrollOffset: CGFloat = 0.0 // Track the last scroll offset
+    @State private var scrollOffset: CGFloat = 0.0
+    @State private var height: CGFloat = 22
+    @State private var lastScrollOffset: CGFloat = 0.0
     @State private var proxy: ScrollViewProxy? = nil
-    init(contentClass: ContentClass, speechRecognizer: SpeechRecognizer, speechSynthesizer: SpeechSynthesizer, keyboardResponder: KeyboardResponder) {
-        self.contentClass = contentClass
-        self.speechRecognizer = speechRecognizer
-        self.speechSynthesizer = speechSynthesizer
-        self.keyboardResponder = keyboardResponder
-    }
+    @State private var textHeight: CGFloat = 35
+    @StateObject var keyboardResponder = KeyboardResponder()
+    let lineHeight: CGFloat = 20
+    @Binding var command: String
+
     var body: some View {
-        VStack {
-            HStack(spacing: 8) {
-                ZStack(alignment: .topTrailing) { // Align microphone to the top-right
-                    // Background for TextEditor
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(colorScheme == .dark ? Color(.systemGray5) : Color.white)
-                        .frame(height: max(height, 35)) // Matches TextEditor height
-
-                    // Placeholder and TextEditor
-                    ZStack(alignment: .topLeading) { // Align placeholder to the top-left
-                        // Placeholder
-                        if contentClass.command.isEmpty {
-                            Text(webSearch ? "Have AI search the web..." : "Enter your question...")
-                                .foregroundColor(.gray)
-                                .padding(.leading, 14) // Align with text inside TextEditor
-                                .padding(.top, 7) // Align with vertical padding of TextEditor
-                        }
-
-                        // TextEditor for user input
-                        DynamicHeightTextEditor(text: $contentClass.command, height: $height)
-                            .frame(height: max(height, 35)) // Matches TextEditor height
-                            .padding(.leading, 10)
-                            .padding(.trailing, 40) // Reserve space for the microphone button
-                            .background(Color.clear) // Transparent, so RoundedRectangle shows through
-                            .scrollContentBackground(.hidden) // Ensure background takes effect
-                            .onChange(of: contentClass.command) { // Updated for iOS 17
-                                adjustHeight()
-                            }
-                    }
-
-                    // Microphone Button
-                    Button(action: toggleSpeech) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 18))
-                            .padding(.top, 7)
-                            .padding(.horizontal, 12)
-                            .foregroundColor(speechRecognizer.isListening ? .red : .gray.opacity(0.7))
-                    }
-                    .padding(.trailing, 8)
-                }
-                .frame(maxWidth: .infinity)
-
-                // Send Button
-                Button(action: {
-                    contentClass.sendCommand(isUpload: userDefaultsManager.isUpload)
-                    contentClass.command = ""
-                    if userDefaultsManager.isUpload {
-                        uploadFile(fileNameInDocuments: fileName)
-                    }
-                }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 16))
-                        .padding(11)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .clipShape(Circle())
-                }
-                .padding(.trailing, 8)
-            }
-            .padding(.horizontal)
-            .padding(.top)
-            
         
+        VStack {
+            TextArea(
+                contentClass: contentClass,
+                speechRecognizer: speechRecognizer,
+                speechSynthesizer: speechSynthesizer,
+                command: $command // Pass the binding to contentClass.command
+            )
+            
             // Second Row
             HStack {
                 
                 Button(action: {
-                    showFilePicker = true
-                })
-                {
+                    // Show the alert before file picker
+                    showAlert = true
+                }) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 19)).bold()
                         .padding(10)
-                    //.background(showFilePicker || userDefaultsManager.isUpload ? Color.red : Color.blue)
                         .foregroundColor(showFilePicker || userDefaultsManager.isUpload ? Color.red : Color.blue)
-                    //.clipShape(Circle())
-                        .offset(y: -10)
+                        .offset(y: -6)
                 }
                 .padding(.horizontal, 5)
+                .alert(isPresented: $showAlert) {
+                    Alert(
+                        title: Text("Upload File"),
+                        message: Text("Are you sure you want to upload a file? Only JSON files are allowed."),
+                        primaryButton: .default(Text("Continue")) {
+                            // Show file picker on confirmation
+                            showFilePicker = true
+                        },
+                        secondaryButton: .cancel(Text("Cancel"))
+                    )
+                }
                 .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.json]) { result in
                     switch result {
                     case .success(let url):
@@ -174,20 +124,18 @@ struct InputArea: View {
                     }
                 }
                 // Web Search Button
-                Button(action: {
-                    webSearch.toggle()
-                    UserDefaults.standard.set(webSearch, forKey: "webSearch")
-                })
-                {
-                    Image(systemName: "network")
-                        .font(.system(size: 19))
-                        .padding(10)
-                    //.background(webSearch ? Color.red : Color.blue)
-                        .foregroundColor(webSearch ? Color.red : Color.blue)
-                    //.clipShape(Circle())
-                        .offset(y: -8)
-                }
-                
+                    Button(action: {
+                        webSearch.toggle()
+                        UserDefaults.standard.set(webSearch, forKey: "webSearch")
+                    })
+                    {
+                        Image(systemName: "network")
+                            .font(.system(size: 19))
+                            .padding(10)
+                            .foregroundColor(webSearch ? Color.red : Color.blue)
+                            .offset(y: -4)
+                    }
+               
                 // Mute
                 Button(action: {
                     if contentClass.isSpeechEnabled {
@@ -200,10 +148,8 @@ struct InputArea: View {
                     Image(systemName: contentClass.isSpeechEnabled ? "speaker.2.fill" : "speaker.slash.fill")
                         .font(.system(size: 19))
                         .padding(10)
-                    //.background(webSearch ? Color.red : Color.blue)
                         .foregroundColor(contentClass.isSpeechEnabled ? .blue : .red) // Optional: color indication
-                    //.clipShape(Circle())
-                        .offset(y: -8)
+                        .offset(y: -4)
                 }
                 .buttonStyle(.plain) // Removes any default button styling
                 Spacer()
@@ -212,19 +158,19 @@ struct InputArea: View {
             .sheet(isPresented: $showContacts) {
                 ContactsView(contentClass: contentClass)
             }
-        
         }
-        .frame(maxWidth: 1000)
-        .padding(.vertical, 1)
+        .frame(maxWidth: ProcessInfo.processInfo.isiOSAppOnMac ? .infinity : 1000)
         .background(Color(.systemGray6))
-        .ignoresSafeArea(edges: .bottom)
+        .ignoresSafeArea(edges: ProcessInfo.processInfo.isiOSAppOnMac ? .bottom : .all)
         
         .onTapGesture {
-            contentClass.hideKeyboard()
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
         
         .onChange(of: speechRecognizer.recognizedText) {
-            contentClass.command = speechRecognizer.recognizedText
+            DispatchQueue.main.async {
+                command = speechRecognizer.recognizedText
+            }
         }
         
         .onChange(of: userDefaultsManager.webSearch) {
@@ -233,7 +179,6 @@ struct InputArea: View {
         
         .onChange(of: userDefaultsManager.showContacts) {
             showContacts = userDefaultsManager.showContacts
-            //print("showContacts = \(showContacts)")
         }
         
         .onChange(of: showContacts) {
@@ -241,17 +186,145 @@ struct InputArea: View {
                 UserDefaults.standard.set(false, forKey: "showContacts")
             }
         }
-        
+ 
         .onAppear {
             UserDefaults.standard.set(false, forKey: "showContacts")
             speechRecognizer.onCommandDetected = {
-                contentClass.sendCommand(isUpload: userDefaultsManager.isUpload)
-                contentClass.command = ""
+                contentClass.sendCommand(isUpload: userDefaultsManager.isUpload, command: command)
             }
             webSearch = userDefaultsManager.webSearch
         }
     }
+}
 
+struct TextArea: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @ObservedObject var contentClass: ContentClass
+    @ObservedObject var speechRecognizer: SpeechRecognizer
+    @ObservedObject var speechSynthesizer: SpeechSynthesizer
+    @StateObject var userDefaultsManager = UserDefaultsManager()
+    @State private var isShowingSettings = false
+    @State private var isShowingSessions = false
+    @State private var showCopiedToast = false
+    @State private var isTyping = false
+    @State private var isAtBottom = true
+    @State var webSearch: Bool = false
+    @State var uploadSwitch: Bool = false
+
+    @State private var alertMessage: String = ""
+    @State private var selectedFile: URL?
+    @State var showFilePicker: Bool = false
+    @State var fileName: String = ""
+    @State var showContacts: Bool = false
+    @State private var scrollOffset: CGFloat = 0.0
+    @State private var height: CGFloat = 22
+    @State private var lastScrollOffset: CGFloat = 0.0
+    @State private var proxy: ScrollViewProxy? = nil
+    @State private var textHeight: CGFloat = 35
+    @State var bindedFocus: Bool = false
+    @FocusState private var isFocused: Bool
+    @StateObject var keyboardResponder = KeyboardResponder()
+    let lineHeight: CGFloat = 20
+    @Binding var command: String
+    
+  
+    
+           var body: some View {
+            HStack(spacing: 8) {
+                ZStack(alignment: .topTrailing) { // Align microphone to the top-right
+                    // Background for TextEditor
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colorScheme == .dark ? Color(.systemGray5) : Color.white)
+                        .frame(height: max(height, textHeight)) // Matches TextEditor height
+                    
+                    // Placeholder and TextEditor
+                    ZStack(alignment: .topLeading) { // Align placeholder to the top-left
+                        // Placeholder
+                        if command == "" {
+                            Text(webSearch ? "Have AI search the web..." : "Enter your question...")
+                                .foregroundColor(.gray)
+                                .padding(.leading, 14) // Align with text inside TextEditor
+                                .padding(.top, 6) // Align with vertical padding of TextEditor
+                        } else {
+                            Text(" ")
+                                .foregroundColor(.gray)
+                                .padding(.leading, 14) // Align with text inside TextEditor
+                                .padding(.top, 6) // Align with vertical padding of TextEditor
+                        }
+                        
+                        // TextEditor for user input
+                        DynamicHeightTextEditor(
+                            command: $command,
+                            bindedFocus: $bindedFocus,
+                            height: $height
+                        )
+                            .focused($isFocused)
+                            .frame(height: max(height, textHeight)) // Matches TextEditor height
+                            .padding(.leading, 10)
+                            .padding(.trailing, 40) // Reserve space for the microphone button
+                            .background(GeometryReader { proxy in
+                                Color.clear
+                                
+                            })
+                            .onChange(of: isFocused)  {
+                                bindedFocus = isFocused
+                            }
+                            .onAppear {
+                                bindedFocus = isFocused
+                            }
+                            .scrollContentBackground(.hidden) // Ensure background takes effect
+        
+                    }
+                    if command == "" {
+                        // Microphone Button
+                        Button(action: toggleSpeech) {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 18))
+                                .padding(.top, 6)
+                                .padding(.horizontal, 12)
+                                .foregroundColor(contentClass.isDeviceListening ? .red : .gray.opacity(0.7))
+                        }
+                        .padding(.trailing, 8)
+                    } else {
+                        // Clear Text Button
+                        Button(action: {
+                            command = ""
+                            height = 22
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 18))
+                                .padding(.top, 6)
+                                .padding(.horizontal, 12)
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.trailing, 8)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                // Send Button
+                Button(action: {
+                    contentClass.sendCommand(isUpload: userDefaultsManager.isUpload, command: command)
+                    command = ""
+                    
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    if userDefaultsManager.isUpload {
+                        uploadFile(fileNameInDocuments: fileName)
+                    }
+                }) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 16))
+                        .padding(11)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 8)
+            }
+            .padding(.horizontal)
+            .padding(.top)
+           }
     // Refactored toggle action
     func toggleSpeech() {
         if speechRecognizer.isListening {
@@ -259,23 +332,13 @@ struct InputArea: View {
             speechRecognizer.stopListening()
         } else {
             print("Start")
-            contentClass.hideKeyboard()
+            DispatchQueue.main.async {
+                isFocused = false
+            }
             speechRecognizer.startListening()
         }
     }
-    private func adjustHeight() {
-        let lineHeight: Int = 22 // Approximate height of one line of text
-        let maxLines: Int = 3
-        let lines = contentClass.command.components(separatedBy: .newlines).count
-        let contentHeight = CGFloat(lines * lineHeight)
-        if contentHeight < CGFloat(maxLines * lineHeight) {
-            height = contentHeight
-        } else {
-            height = CGFloat(66)
-        }
-        
-    }
-
+    
     func uploadFile(fileNameInDocuments: String) {
         // Prepare the file URL in the Documents directory
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -339,4 +402,7 @@ struct InputArea: View {
         
         task.resume()
     }
+    
 }
+            
+            

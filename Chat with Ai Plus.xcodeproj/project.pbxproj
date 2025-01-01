@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		6B14015D2D000D9700F2D380 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 6B14015C2D000D9700F2D380 /* Down */; };
 		6B1404DE2D0069DE00F2D380 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1404DD2D0069DE00F2D380 /* SwiftMath */; };
+		6B1FEA002D2495D10068CED0 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1FE9FF2D2495D10068CED0 /* FirebaseCore */; };
+		6B1FEA022D2495D10068CED0 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 6B1FEA012D2495D10068CED0 /* FirebaseCrashlytics */; };
 		6B5F23452CD33A1000E8E512 /* ChatModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6B5F23432CD33A1000E8E512 /* ChatModel.xcdatamodeld */; };
 		6BCFFED02D062BE60057A1FE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88379C2CD2F5C100EF64FB /* WidgetKit.framework */; };
 		6BCFFED12D062BE60057A1FE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B88379E2CD2F5C100EF64FB /* SwiftUI.framework */; };
@@ -89,6 +91,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				6B1404DE2D0069DE00F2D380 /* SwiftMath in Frameworks */,
+				6B1FEA022D2495D10068CED0 /* FirebaseCrashlytics in Frameworks */,
+				6B1FEA002D2495D10068CED0 /* FirebaseCore in Frameworks */,
 				6B14015D2D000D9700F2D380 /* Down in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -160,6 +164,8 @@
 			packageProductDependencies = (
 				6B14015C2D000D9700F2D380 /* Down */,
 				6B1404DD2D0069DE00F2D380 /* SwiftMath */,
+				6B1FE9FF2D2495D10068CED0 /* FirebaseCore */,
+				6B1FEA012D2495D10068CED0 /* FirebaseCrashlytics */,
 			);
 			productName = "Ai Chat";
 			productReference = 6B88375F2CD1A33D00EF64FB /* Chat with Ai Plus.app */;
@@ -220,6 +226,7 @@
 			packageReferences = (
 				6B14015B2D000D9700F2D380 /* XCRemoteSwiftPackageReference "Down" */,
 				6B1404DC2D0069DE00F2D380 /* XCRemoteSwiftPackageReference "SwiftMath" */,
+				6B1FE9FE2D2495D10068CED0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6B8837602CD1A33D00EF64FB /* Products */;
@@ -403,6 +410,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Chat with Ai Plus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Ai Chat/Preview Content\"";
 				DEVELOPMENT_TEAM = ZUL32453KR;
 				ENABLE_PREVIEWS = YES;
@@ -420,6 +428,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -430,6 +439,7 @@
 				REGISTER_APP_GROUPS = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -461,6 +471,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -471,6 +482,7 @@
 				REGISTER_APP_GROUPS = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -543,7 +555,7 @@
 				6B88376C2CD1A33F00EF64FB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		6B88376D2CD1A33F00EF64FB /* Build configuration list for PBXNativeTarget "Chat with Ai Plus" */ = {
 			isa = XCConfigurationList;
@@ -552,7 +564,7 @@
 				6B88376F2CD1A33F00EF64FB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		6BCFFEDE2D062BEA0057A1FE /* Build configuration list for PBXNativeTarget "AIWidgetExtension" */ = {
 			isa = XCConfigurationList;
@@ -561,7 +573,7 @@
 				6BCFFEE02D062BEA0057A1FE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 
@@ -582,6 +594,14 @@
 				minimumVersion = 1.6.0;
 			};
 		};
+		6B1FE9FE2D2495D10068CED0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -594,6 +614,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6B1404DC2D0069DE00F2D380 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
+		};
+		6B1FE9FF2D2495D10068CED0 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1FE9FE2D2495D10068CED0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		6B1FEA012D2495D10068CED0 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B1FE9FE2D2495D10068CED0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 

@@ -7,11 +7,11 @@ import Combine
 class SpeechRecognizer: ObservableObject {
     
     private let contentClass: ContentClass
-    @AppStorage("playSoundSetting") var playSoundSetting: Bool = true
+    private let audioPlayerManager: AudioPlayerManager
 
-    init(contentClass: ContentClass) {
+    init(contentClass: ContentClass, audioPlayerManager: AudioPlayerManager) {
         self.contentClass = contentClass
-        print("ContentClass instance in SpeechRecognizer: \(ObjectIdentifier(contentClass))")
+        self.audioPlayerManager = audioPlayerManager
     }
 
     @Published var isListening = false
@@ -20,18 +20,19 @@ class SpeechRecognizer: ObservableObject {
             onRecognizedTextUpdate?(recognizedText) // Notify external state of text updates
         }
     }
-    var audioPlayer: AVAudioPlayer?
 
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest? // Optional for proper reinitialization
+    private var recognitionTask: SFSpeechRecognitionTask?
     private var silenceTimer: Timer?
     private var musicPlayer = MPMusicPlayerController.applicationMusicPlayer
     private var musicPlayerIsPlaying = false
     
     var onCommandDetected: (() -> Void)?
     var onRecognizedTextUpdate: ((String) -> Void)? // Closure for updating external state
+    
+
     
     func toggleListening() {
         if isListening {
@@ -45,12 +46,24 @@ class SpeechRecognizer: ObservableObject {
     }
 
     func startListening() {
+        print("Preparing to start listening...")
+        audioPlayerManager.playSound()
+    }
+    
+    func checkPermission() {
+        // Check and remove any existing taps before adding a new one
+        let inputNode = audioEngine.inputNode
+        inputNode.removeTap(onBus: 0)
+
+        // Request authorization for speech recognition
         SFSpeechRecognizer.requestAuthorization { authStatus in
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 switch authStatus {
                 case .authorized:
-                    self.contentClass.scrollTop(proxy: self.contentClass.msgProxy)
-                    self.startRecognition()
+                   // self.contentClass.scrollTop(proxy: self.contentClass.msgProxy)
+                   
+                    self.checkMic()
                 case .denied, .restricted, .notDetermined:
                     print("Speech recognition authorization denied or unavailable.")
                 @unknown default:
@@ -59,102 +72,108 @@ class SpeechRecognizer: ObservableObject {
             }
         }
     }
-    
-    func playSound() {
-        if playSoundSetting {
-            // Step 2: Stop the current player if it's playing
-            if let player = audioPlayer, player.isPlaying {
-                player.stop()
-            }
-            
-            // Step 3: Create and play the sound
-            if let soundURL = Bundle.main.url(forResource: "sound", withExtension: "mp3") {
-                do {
-                    audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-                    audioPlayer?.prepareToPlay()
-                    audioPlayer?.play()
-                } catch {
-                    print("Failed to play sound: \(error.localizedDescription)")
+
+    func checkMic() {
+        AVAudioApplication.requestRecordPermission { granted in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if granted {
+                    print("Microphone permission granted")
+                    self.startRecognition()
+                } else {
+                    print("Microphone permission denied.")
                 }
-            } else {
-                print("Sound file not found")
             }
         }
-    
+        
     }
     
-    
     private func startRecognition() {
-        // Play a tone to indicate listening
-        //AudioServicesPlaySystemSound(1103) // "Tone" system sound
-        playSound()
-        if contentClass.musicPlayer.playbackState == .playing {
-            contentClass.musicPlayerIsPlaying = true
-        } else {
-            contentClass.musicPlayerIsPlaying = false
-        }
-
+        isListening = true
+        
+        // Clean up any existing audio engine state
         if audioEngine.isRunning {
-            stopListening()
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        AudioSessionManager.shared.configureForSpeechRecognition()
+        
+        print("Starting Recognition...")
+
+        // Initialize recognition request
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        let inputNode = audioEngine.inputNode
+        let format = inputNode.inputFormat(forBus: 0) // Get the input node's format
+        print("Sample Rate: \(format.sampleRate), Channels: \(format.channelCount)")
+        if (format.channelCount == 0) {
+            print("Failed to start audio engine")
+            return
+        }
+        let inputFormat = audioEngine.inputNode.inputFormat(forBus: 0)
+        let audioFormat = AVAudioFormat(commonFormat: inputFormat.commonFormat,
+                                        sampleRate: inputFormat.sampleRate,
+                                        channels: inputFormat.channelCount,
+                                        interleaved: inputFormat.isInterleaved)
+
+        // Add input tap
+        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: audioFormat) { buffer, when in
+            self.recognitionRequest?.append(buffer)
         }
 
-        print("start listening")
-        contentClass.isListening(x: true)
-        configureAudioSession()
-        
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-        recognitionRequest.shouldReportPartialResults = true
-        
-        let inputNode = audioEngine.inputNode
-        inputNode.removeTap(onBus: 0)
-        
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+
+        // Start audio engine
+        do {
+            audioEngine.prepare()
+            try audioEngine.start()
+            print("Audio Engine Started")
+        } catch {
+            print("Failed to start audio engine: \(error.localizedDescription)")
+            return
+        }
+
+        // Start recognition task
+        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest!) { [weak self] result, error in
             guard let self = self else { return }
-            
+
             if let result = result {
                 print("Recognized Text: \(result.bestTranscription.formattedString)")
                 self.recognizedText = result.bestTranscription.formattedString
                 self.resetSilenceTimer()
             }
-            
+
             if let error = error {
                 print("Recognition Error: \(error.localizedDescription)")
+                self.stopListening()
+                return
             }
-            
+
             if result?.isFinal ?? false {
                 print("Final Transcription: \(result?.bestTranscription.formattedString ?? "")")
                 self.stopListening()
                 self.sendCommandAfterPause()
             }
         }
-        
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            recognitionRequest.append(buffer)
-        }
-        
-        do {
-            try startAudioEngine() // Use the existing startAudioEngine method
-            isListening = true
-            print("Audio engine started")
-        } catch {
-            print("Failed to start audio engine: \(error.localizedDescription)")
-        }
+
+        print("Listening started...")
+        contentClass.isListening(x :true)
     }
     
     func stopListening() {
         print("Stop Audio Engine")
+        // Reset audio session
+        AudioSessionManager.shared.resetAudioSession()
         contentClass.isListening(x: false)
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
+        recognitionRequest = nil // Clean up the request
         isListening = false
-        contentClass.scrollToBottomBottom(proxy: contentClass.msgProxy)
+        //contentClass.scrollToBottom(proxy: contentClass.msgProxy)
         silenceTimer?.invalidate()
-        reconfigureAudioSession()
+
         if contentClass.musicPlayerIsPlaying {
             contentClass.musicPlayer.play()
         }
@@ -162,7 +181,6 @@ class SpeechRecognizer: ObservableObject {
     }
     
     private func startAudioEngine() throws {
-        // Existing code for starting the audio engine
         do {
             try audioEngine.start()
         } catch {
@@ -184,24 +202,4 @@ class SpeechRecognizer: ObservableObject {
         onCommandDetected?()
     }
     
-    private func configureAudioSession() {
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            print("Failed to set up audio session: \(error.localizedDescription)")
-        }
-    }
-    
-    private func reconfigureAudioSession() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default, options: [.duckOthers])
-            try audioSession.setActive(false)
-            print("Audio session successfully configured for playback.")
-        } catch {
-            print("Failed to configure audio session: \(error.localizedDescription)")
-        }
-    }
 }

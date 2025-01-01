@@ -48,7 +48,7 @@ struct FormattedTextView: View {
         let lines = preprocessMessage(message)
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
+            LazyVStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                     view(for: line)
                 }
@@ -63,7 +63,7 @@ struct FormattedTextViewHelper: View {
 
     var body: some View {
         let components = parseInlineLaTeX(in: text)
-        VStack(alignment: .leading, spacing: 0) {
+        LazyVStack(alignment: .leading, spacing: 0) { // Replaced VStack with LazyVStack
             ForEach(Array(components.enumerated()), id: \.offset) { _, component in
                 switch component {
                 case .text(let content):

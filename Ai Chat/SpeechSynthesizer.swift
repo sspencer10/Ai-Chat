@@ -18,11 +18,8 @@ class SpeechSynthesizer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate
     
     init(contentClass: ContentClass) {
         self.contentClass = contentClass
-        print("ContentClass instance in SpeechSynthesizer: \(ObjectIdentifier(contentClass))")
         super.init()
         synthesizer.delegate = self
-        NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleRouteChange), name: AVAudioSession.routeChangeNotification, object: nil)
     }
     
 
@@ -40,9 +37,7 @@ class SpeechSynthesizer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         print("Speech finished!")
-        let audioSession = AVAudioSession.sharedInstance()
-
-        try? audioSession.setActive(false)
+        stopSpeech()
         if (contentClass.musicPlayerIsPlaying) {
             contentClass.musicPlayer.play()
         }
@@ -66,9 +61,7 @@ class SpeechSynthesizer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
         }
-        let audioSession = AVAudioSession.sharedInstance()
-
-        try? audioSession.setActive(true)
+        AudioSessionManager.shared.configureForSpeechSynthesis()
         print("speaking response")
         
         // Extract the first paragraph before the first newline character
@@ -92,50 +85,10 @@ class SpeechSynthesizer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate
     }
 
 
-    // Handle interruptions
-    @objc func handleInterruption(notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
-            return
-        }
-
-        if type == .began {
-            // Pause or stop speech
-            if synthesizer.isSpeaking {
-                synthesizer.pauseSpeaking(at: .word)
-            }
-        } else if type == .ended {
-            // Resume speech if appropriate
-            synthesizer.continueSpeaking()
-        }
-    }
-
-    // Handle route changes
-    @objc func handleRouteChange(notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
-              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
-            return
-        }
-
-        switch reason {
-        case .oldDeviceUnavailable:
-            // Bluetooth device disconnected
-            if synthesizer.isSpeaking {
-                synthesizer.pauseSpeaking(at: .word)
-            }
-        case .newDeviceAvailable:
-            // Bluetooth device connected
-            // Optionally resume speech
-            break
-        default:
-            break
-        }
-    }
     // Function to stop speech immediately
     func stopSpeech() {
         print("Stopping speech")
         synthesizer.stopSpeaking(at: .immediate) // Stops immediately
+        AudioSessionManager.shared.resetAudioSession()
     }
 }

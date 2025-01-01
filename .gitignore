@@ -1,0 +1,24 @@
+# Xcode-specific files
+*.xcuserstate
+*.xcuserdata
+*.swp
+*.lock
+DerivedData/
+build/
+
+# macOS-specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager
+.build/
+Packages/
+*.xcodeproj/project.xcworkspace/
+
+# CocoaPods
+Pods/
+
+# Exclude Firebase configuration file
+Ai Chat/GoogleService-Info.plist
+

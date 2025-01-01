@@ -30,6 +30,8 @@ struct MainContent: View {
     @StateObject var userDefaultsManager = UserDefaultsManager()
     @StateObject var keyboardResponder = KeyboardResponder()
     @State var command: String = ""
+    @State private var randomSentences: [String] = []
+
 
     init(contentClass: ContentClass, speechRecognizer: SpeechRecognizer, speechSynthesizer: SpeechSynthesizer) {
         self.contentClass = contentClass
@@ -47,9 +49,7 @@ struct MainContent: View {
         "Help me diagnose my illness"
     ]
     
-    var randomSentences: [String] {
-        Array(allSentences.shuffled().prefix(4))
-    }
+
     
     var body: some View {
         ZStack {
@@ -185,6 +185,11 @@ struct MainContent: View {
         
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+        
+            .onAppear {
+                // Populate randomSentences when the view appears for the first time
+                randomSentences = Array(allSentences.shuffled().prefix(4))
             }
         
             .navigationTitle(navTitle())
